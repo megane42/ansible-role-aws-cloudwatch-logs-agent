@@ -1,0 +1,47 @@
+---
+
+- block:
+  - name: "Install RedHat/AMZN Linux Cloudwatch Log Agent."
+    include: "RedHat.yml"
+
+  - name: "Configure Cloudwatch Log Agent."
+    include: "conf.yml"
+  when: ansible_os_family == "RedHat"    
+
+- block:
+  - name: "Download Debian/Ubuntu Cloudwatch Log Agent Install Script."
+    include: "Debian.yml"
+
+  - name: "Configure Cloudwatch Log Agent."
+    include: "conf.yml"
+
+  - name: "Install Debian/Ubuntu Cloudwatch Log Agent."
+    include: "DebianInstall.yml"
+  when: ansible_os_family == "Debian"
+
+- block:
+  - name: "Set region for Cloudwatch endpoint"
+    template:
+      src: templates/etc/aws.conf.j2
+      dest: /var/awslogs/etc/aws.conf
+      owner: root
+      group: root
+      mode: 0600
+
+  - name: "Restart awslogs service."
+    service:
+      name: awslogs
+      state: restarted
+      enabled: yes
+  # If amazon linux 1 or not amazon linux 2
+  when: (ansible_distribution != "Amazon" and ansible_os_family != "RedHat" and ansible_distribution_version != "(Karoo)") or
+        (ansible_distribution == "Amazon" and ansible_os_family == "RedHat" and ansible_distribution_version == "2018.03")
+
+- block:
+  - name: "Restart awslogsd service."
+    service:
+      name: awslogsd
+      state: restarted
+      enabled: yes
+  # If amazon linux 2
+  when: ansible_distribution == "Amazon" and ansible_os_family == "RedHat" and ansible_distribution_version == "(Karoo)"
